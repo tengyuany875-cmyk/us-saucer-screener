@@ -77,6 +77,7 @@ def render_html(results: pd.DataFrame, output_path: Path, total_count: int) -> N
 :root{{color-scheme:light dark}}body{{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:18px;line-height:1.5;background:Canvas;color:CanvasText}}main{{max-width:1500px;margin:auto}}h1{{font-size:1.35rem;margin-bottom:4px}}.meta{{opacity:.7;font-size:.9rem;margin-bottom:16px}}.table-wrap{{overflow-x:auto;border:1px solid #8885;border-radius:10px}}table{{border-collapse:collapse;width:100%;min-width:1050px}}th,td{{padding:10px 8px;border-bottom:1px solid #8884;text-align:right;white-space:nowrap}}th{{position:sticky;top:0;background:Canvas}}th:first-child,td:first-child,th:nth-child(3),td:nth-child(3){{text-align:left}}tbody tr:hover{{background:#8882}}a{{font-weight:700}}.note{{margin-top:14px;padding:12px;border:1px solid #8885;border-radius:10px}}@media(max-width:700px){{body{{padding:10px}}.table-wrap{{border:0;overflow:visible}}table,thead,tbody,th,td,tr{{display:block;min-width:0}}thead{{display:none}}tr{{border:1px solid #8885;border-radius:10px;margin-bottom:12px;padding:8px}}td{{border:0;padding:5px 4px;text-align:right!important}}td::before{{content:attr(data-label);float:left;opacity:.68}}td:first-child{{font-size:1.15rem}}}}
 </style></head><body><main><h1>米国株・週足ソーサーボトム候補</h1>
 <div class="meta">生成日時: {generated} / 条件通過 {total_count}件 / 表示 {len(results)}件</div>
+{body}
 <div class="note">候補抽出用です。決算、業績、希薄化、ニュースを確認してから投資判断してください。40週線はおおむね200取引日線に相当します。</div>
 </main></body></html>'''
     output_path.write_text(page, encoding="utf-8")
