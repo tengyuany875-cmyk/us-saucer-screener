@@ -59,16 +59,35 @@ def render_html(results: pd.DataFrame, output_path: Path, total_count: int) -> N
             "Distance52wHighPct": "52週高値乖離%", "LastDate": "基準日"
         }
         rows = []
-        for _, row in results.iterrows():
+        for row_index, (_, row) in enumerate(results.iterrows()):
             ticker = html.escape(str(row["Ticker"]))
             exchange = html.escape(str(row["Exchange"]))
             cells = [f'<td><a href="https://www.tradingview.com/chart/?symbol={exchange}%3A{ticker}" target="_blank">{ticker}</a></td>']
             for col in columns[1:]:
                 value = "" if pd.isna(row[col]) else html.escape(str(row[col]))
                 cells.append(f'<td data-label="{labels[col]}">{value}</td>')
-            rows.append("<tr>" + "".join(cells) + "</tr>")
+            row_style = "" if row_index < 20 else ' style="display:none"'
+            rows.append(f'<tr data-row-index="{row_index}"{row_style}>' + "".join(cells) + "</tr>")
         headers = "".join(f"<th>{labels[c]}</th>" for c in columns)
-        body = f'<div class="table-wrap"><table><thead><tr>{headers}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
+        body = f"""
+<div class="limit-buttons">
+  <button type="button" onclick="setLimit(20)">20件</button>
+  <button type="button" onclick="setLimit(50)">50件</button>
+  <button type="button" onclick="setLimit(100)">100件</button>
+  <button type="button" onclick="setLimit('all')">全件</button>
+</div>
+<div class="table-wrap"><table><thead><tr>{headers}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>
+<script>
+function setLimit(limit) {{
+  const rows = document.querySelectorAll("tbody tr");
+  rows.forEach((row, index) => {{
+    row.style.display = (limit === "all" || index < limit) ? "" : "none";
+  }});
+  const shown = limit === "all" ? rows.length : Math.min(limit, rows.length);
+  document.getElementById("visible-count").textContent = shown;
+}}
+</script>
+"""
 
     generated = datetime.now().strftime("%Y-%m-%d %H:%M")
     page = f'''<!doctype html><html lang="ja"><head><meta charset="utf-8">
@@ -77,7 +96,7 @@ def render_html(results: pd.DataFrame, output_path: Path, total_count: int) -> N
 <style>
 :root{{color-scheme:light dark}}body{{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:18px;line-height:1.5;background:Canvas;color:CanvasText}}main{{max-width:1500px;margin:auto}}h1{{font-size:1.35rem;margin-bottom:4px}}.meta{{opacity:.7;font-size:.9rem;margin-bottom:16px}}.table-wrap{{overflow-x:auto;border:1px solid #8885;border-radius:10px}}table{{border-collapse:collapse;width:100%;min-width:1050px}}th,td{{padding:10px 8px;border-bottom:1px solid #8884;text-align:right;white-space:nowrap}}th{{position:sticky;top:0;background:Canvas}}th:first-child,td:first-child,th:nth-child(3),td:nth-child(3){{text-align:left}}tbody tr:hover{{background:#8882}}a{{font-weight:700}}.note{{margin-top:14px;padding:12px;border:1px solid #8885;border-radius:10px}}@media(max-width:700px){{body{{padding:10px}}.table-wrap{{border:0;overflow:visible}}table,thead,tbody,th,td,tr{{display:block;min-width:0}}thead{{display:none}}tr{{border:1px solid #8885;border-radius:10px;margin-bottom:12px;padding:8px}}td{{border:0;padding:5px 4px;text-align:right!important}}td::before{{content:attr(data-label);float:left;opacity:.68}}td:first-child{{font-size:1.15rem}}}}
 </style></head><body><main><h1>米国株・週足ソーサーボトム候補</h1>
-<div class="meta">生成日時: {generated} / 条件通過 {total_count}件 / 表示 {len(results)}件</div>
+<div class="meta">生成日時: {generated} / 条件通過 {total_count}件 / 表示 <span id="visible-count">{min(20, len(results))}</span>件</div>
 {body}
 <div class="note">候補抽出用です。決算、業績、希薄化、ニュースを確認してから投資判断してください。40週線はおおむね200取引日線に相当します。</div>
 </main></body></html>'''
@@ -121,10 +140,11 @@ def run_scan(mode: str, refresh_universe: bool) -> pd.DataFrame:
         time.sleep(CONFIG.request_pause_seconds)
 
     print(f"\n条件通過総数: {len(results)}")
-    final = sort_results(results).head(CONFIG.top_n)
+    all_results = sort_results(results)
+    final = all_results.head(CONFIG.top_n)
     Path("output").mkdir(exist_ok=True)
-    final.to_csv("output/results.csv", index=False)
-    render_html(final, Path("output/results.html"), len(results))
+    all_results.to_csv("output/results.csv", index=False)
+    render_html(all_results, Path("output/results.html"), len(results))
     if failures:
         pd.Series(sorted(set(failures)), name="Ticker").to_csv("output/failures.csv", index=False)
     print(f"\n候補数: {len(final)}")
