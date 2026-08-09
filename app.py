@@ -59,9 +59,10 @@ def render_html(results: pd.DataFrame, output_path: Path, total_count: int) -> N
             "Distance52wHighPct": "52週高値乖離%", "LastDate": "基準日"
         }
         rows = []
-        for _, row in results[columns].iterrows():
+        for _, row in results.iterrows():
             ticker = html.escape(str(row["Ticker"]))
-            cells = [f'<td><a href="https://finance.yahoo.com/quote/{ticker}" target="_blank">{ticker}</a></td>']
+            exchange = html.escape(str(row["Exchange"]))
+            cells = [f'<td><a href="https://www.tradingview.com/chart/?symbol={exchange}%3A{ticker}" target="_blank">{ticker}</a></td>']
             for col in columns[1:]:
                 value = "" if pd.isna(row[col]) else html.escape(str(row[col]))
                 cells.append(f'<td data-label="{labels[col]}">{value}</td>')
