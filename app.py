@@ -43,6 +43,44 @@ def download_batch(tickers: list[str]) -> pd.DataFrame:
 
 def render_html(results: pd.DataFrame, output_path: Path, total_count: int) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    current_market_date = "—"
+    previous_count = None
+    candidate_delta = None
+
+    if not results.empty and "LastDate" in results.columns:
+        market_dates = sorted(results["LastDate"].dropna().astype(str).unique())
+        if market_dates:
+            current_market_date = market_dates[-1]
+
+    history_path = Path("history/weekly_tracking.csv")
+    if current_market_date != "—" and history_path.exists():
+        try:
+            tracking = pd.read_csv(history_path)
+            tracking["MarketDate"] = tracking["MarketDate"].astype(str)
+
+            previous_dates = sorted(
+                d for d in tracking["MarketDate"].dropna().unique()
+                if d < current_market_date
+            )
+
+            if previous_dates:
+                previous_date = previous_dates[-1]
+                previous = tracking[
+                    tracking["MarketDate"].eq(previous_date)
+                ]
+                previous_count = int(
+                    previous["InScreener"]
+                    .astype(str)
+                    .str.lower()
+                    .eq("true")
+                    .sum()
+                )
+                candidate_delta = total_count - previous_count
+        except Exception:
+            pass
+
+    delta_text = "—" if candidate_delta is None else f"{candidate_delta:+d}"
     if results.empty:
         body = "<p>条件に合う候補はありませんでした。</p>"
     else:
@@ -210,10 +248,15 @@ applyControls();
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>米国株ソーサーボトム候補</title>
 <style>
-:root{{color-scheme:light dark}}body{{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:18px;line-height:1.5;background:Canvas;color:CanvasText}}main{{max-width:1500px;margin:auto}}h1{{font-size:1.35rem;margin-bottom:4px}}.meta{{font-size:.9rem;margin-bottom:12px}}.generated{{opacity:.65}}.count-badges{{display:inline-flex;gap:6px;margin-left:8px}}.count-badges strong{{padding:3px 8px;border-radius:999px;background:#e6f0ff;color:#173b70;font-size:.9rem}}.controls{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:8px}}.controls label{{font-size:.85rem;font-weight:600}}.controls select{{display:block;width:100%;margin-top:2px}}.table-wrap{{overflow-x:auto;border:1px solid #8885;border-radius:10px}}table{{border-collapse:collapse;width:100%;min-width:1050px}}th,td{{padding:10px 8px;border-bottom:1px solid #8884;text-align:right;white-space:nowrap}}th{{position:sticky;top:0;background:Canvas}}th:first-child,td:first-child,th:nth-child(3),td:nth-child(3){{text-align:left}}tbody tr:hover{{background:#8882}}a{{font-weight:700}}.note{{margin-top:14px;padding:12px;border:1px solid #8885;border-radius:10px}}@media(max-width:700px){{body{{padding:6px}}.meta{{margin-bottom:10px}}.generated{{display:block;margin-bottom:5px}}.count-badges{{margin-left:0}}.controls{{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 8px}}.controls label{{font-size:.82rem}}.controls select{{font-size:.9rem}}.table-wrap{{border:0;overflow:visible}}table,thead,tbody,th{{display:block;min-width:0}}thead{{display:none}}tr{{display:flex;flex-wrap:wrap;border:1px solid #8885;border-radius:9px;margin-bottom:5px;padding:4px}}td{{display:block;width:50%;box-sizing:border-box;border:0;padding:1px 4px;font-size:.87rem;line-height:1.25;text-align:right!important}}td::before{{content:attr(data-label);float:left;opacity:.68}}td:first-child{{width:100%;font-size:1.05rem;line-height:1.3;padding:1px 4px 2px}}}}
+:root{{color-scheme:light dark}}body{{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:18px;line-height:1.5;background:Canvas;color:CanvasText}}main{{max-width:1500px;margin:auto}}h1{{font-size:1.35rem;margin-bottom:4px}}.meta{{font-size:.9rem;margin-bottom:12px}}.generated{{opacity:.65}}.update-status{{display:flex;flex-wrap:wrap;gap:6px;margin:5px 0 7px}}.update-status strong{{padding:3px 8px;border-radius:999px;background:#e8f5e9;color:#1f5d2c;font-size:.9rem}}.count-badges{{display:inline-flex;gap:6px;margin-left:8px}}.count-badges strong{{padding:3px 8px;border-radius:999px;background:#e6f0ff;color:#173b70;font-size:.9rem}}.controls{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:8px}}.controls label{{font-size:.85rem;font-weight:600}}.controls select{{display:block;width:100%;margin-top:2px}}.table-wrap{{overflow-x:auto;border:1px solid #8885;border-radius:10px}}table{{border-collapse:collapse;width:100%;min-width:1050px}}th,td{{padding:10px 8px;border-bottom:1px solid #8884;text-align:right;white-space:nowrap}}th{{position:sticky;top:0;background:Canvas}}th:first-child,td:first-child,th:nth-child(3),td:nth-child(3){{text-align:left}}tbody tr:hover{{background:#8882}}a{{font-weight:700}}.note{{margin-top:14px;padding:12px;border:1px solid #8885;border-radius:10px}}@media(max-width:700px){{body{{padding:6px}}.meta{{margin-bottom:10px}}.generated{{display:block;margin-bottom:5px}}.count-badges{{margin-left:0}}.controls{{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 8px}}.controls label{{font-size:.82rem}}.controls select{{font-size:.9rem}}.table-wrap{{border:0;overflow:visible}}table,thead,tbody,th{{display:block;min-width:0}}thead{{display:none}}tr{{display:flex;flex-wrap:wrap;border:1px solid #8885;border-radius:9px;margin-bottom:5px;padding:4px}}td{{display:block;width:50%;box-sizing:border-box;border:0;padding:1px 4px;font-size:.87rem;line-height:1.25;text-align:right!important}}td::before{{content:attr(data-label);float:left;opacity:.68}}td:first-child{{width:100%;font-size:1.05rem;line-height:1.3;padding:1px 4px 2px}}}}
 </style></head><body><main><h1>米国株・週足ソーサーボトム候補</h1>
 <div class="meta">
 <span class="generated">生成日時: {generated}</span>
+<div class="update-status">
+<strong>最終基準日 {current_market_date}</strong>
+<strong>現在候補 {total_count}件</strong>
+<strong>前回比 {delta_text}</strong>
+</div>
 <span class="count-badges">
 <strong>条件通過 {total_count}件</strong>
 <strong>絞り込み該当 <span id="matched-count">{len(results)}</span>件</strong>
