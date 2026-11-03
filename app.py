@@ -11,6 +11,7 @@ import pandas as pd
 import yfinance as yf
 
 from config import CONFIG
+from market_caps import add_market_caps, fetch_snapshot, format_market_cap, format_market_rank
 from screener import analyse_ticker, sort_results
 from universe import fetch_us_equity_universe
 
@@ -112,6 +113,14 @@ def render_html(results: pd.DataFrame, output_path: Path, total_count: int) -> N
                 "底固め中": "forming",
             }.get(str(row["Stage"]), "forming")
             price = "—" if pd.isna(row["Price"]) else f'${float(row["Price"]):,.2f}'
+            market_cap = format_market_cap(row.get("MarketCapUSD"))
+            market_rank = format_market_rank(row.get("USMarketCapRank"))
+            cap_context = html.escape(
+                "Nasdaq掲載の米国上場普通株（ETF・優先株等を除外）の銘柄単位の参考順位。"
+                f'比較対象: {row.get("MarketCapReferenceCount", "不明")}銘柄。'
+                f'取得日時（UTC）: {row.get("MarketCapFetchedAtUTC", "不明")}。'
+                "米国企業以外の米国上場株も含みます。株価の基準日とは異なる場合があります。"
+            )
             chart_symbol = quote(f'{row["Exchange"]}:{row["Ticker"]}', safe="")
             yahoo_symbol = quote(str(row["Ticker"]), safe="")
             volume_ratio = "" if pd.isna(row["VolumeRatio4wVs12w"]) else str(row["VolumeRatio4wVs12w"])
@@ -129,6 +138,9 @@ def render_html(results: pd.DataFrame, output_path: Path, total_count: int) -> N
                 f'<strong>{html.escape(score)}</strong><span class="score-unit"> / 100</span></div></div>'
                 f'<div class="candidate-overview"><span class="stage {stage_class}">{stage}</span>'
                 f'<div class="price"><span>株価</span><strong>{price}</strong></div></div>'
+                f'<p class="market-cap-line" title="{cap_context}">'
+                f'<span>時価総額：{market_cap}</span><span aria-hidden="true">｜</span>'
+                f'<span>米国株内：{market_rank}</span></p>'
                 f'<div class="candidate-actions"><a class="chart-link" '
                 f'href="https://www.tradingview.com/chart/?symbol={chart_symbol}" '
                 f'target="_blank" rel="noopener noreferrer" '
@@ -344,6 +356,9 @@ h2 {{ margin: 0; font-size: 23px; line-height: 1.15; letter-spacing: -.02em; }}
 .price {{ display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }}
 .price span {{ color: var(--muted); font-size: 11px; }}
 .price strong {{ font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }}
+.market-cap-line {{ display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px;
+  margin: -2px 0 12px; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }}
+.market-cap-line > span {{ white-space: nowrap; }}
 .candidate-actions {{ position: relative; }}
 a {{ color: var(--accent); text-underline-offset: 3px; }}
 .chart-link {{ position: absolute; left: 0; top: 0; right: 92px; min-height: 44px;
@@ -431,6 +446,11 @@ def run_scan(mode: str, refresh_universe: bool) -> pd.DataFrame:
 
     print(f"\n条件通過総数: {len(results)}")
     all_results = sort_results(results)
+    if not all_results.empty:
+        try:
+            all_results = add_market_caps(all_results, fetch_snapshot())
+        except Exception as exc:
+            print(f"時価総額の取得に失敗したため、時価総額・順位は不明と表示します: {exc}")
     final = all_results.head(CONFIG.top_n)
     Path("output").mkdir(exist_ok=True)
     all_results.to_csv("output/results.csv", index=False)
