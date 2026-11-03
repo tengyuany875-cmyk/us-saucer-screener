@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 import html
 import time
+from urllib.parse import quote
 
 import pandas as pd
 import yfinance as yf
@@ -84,42 +85,69 @@ def render_html(results: pd.DataFrame, output_path: Path, total_count: int) -> N
     if results.empty:
         body = "<p>条件に合う候補はありませんでした。</p>"
     else:
-        columns = [
-            "Ticker", "Score", "Stage", "Price", "DrawdownToBottomPct",
-            "RecoveryPct", "BottomWeeks", "VolumeRatio4wVs12w",
+        detail_columns = [
+            "DrawdownToBottomPct", "RecoveryPct", "BottomWeeks", "VolumeRatio4wVs12w",
             "DistanceSMA40Pct", "DistanceSMA200wPct", "Distance52wHighPct", "LastDate"
         ]
         labels = {
-            "Ticker": "銘柄", "Score": "点数", "Stage": "段階", "Price": "終値",
             "DrawdownToBottomPct": "底までの下落%", "RecoveryPct": "回復率%",
             "BottomWeeks": "底値圏週数", "VolumeRatio4wVs12w": "出来高比",
             "DistanceSMA40Pct": "40週線乖離%", "DistanceSMA200wPct": "200週線乖離%",
             "Distance52wHighPct": "52週高値乖離%", "LastDate": "基準日"
         }
-        rows = []
+        cards = []
         for row_index, (_, row) in enumerate(results.iterrows()):
             ticker = html.escape(str(row["Ticker"]))
             exchange = html.escape(str(row["Exchange"]))
-            cells = [f'<td><a href="https://www.tradingview.com/chart/?symbol={exchange}%3A{ticker}" target="_blank">{ticker}</a> <a href="https://finance.yahoo.com/quote/{ticker}" target="_blank">Yahoo</a></td>']
-            for col in columns[1:]:
-                value = "" if pd.isna(row[col]) else html.escape(str(row[col]))
-                cells.append(f'<td data-label="{labels[col]}">{value}</td>')
-            row_style = "" if row_index < 20 else ' style="display:none"'
+            details = []
+            for col in detail_columns:
+                value = "—" if pd.isna(row[col]) else html.escape(str(row[col]))
+                details.append(f'<div><dt>{labels[col]}</dt><dd>{value}</dd></div>')
+            hidden = "" if row_index < 20 else " hidden"
             score = "" if pd.isna(row["Score"]) else str(row["Score"])
             stage = html.escape(str(row["Stage"]))
-            exchange_attr = html.escape(str(row["Exchange"]))
+            stage_class = {
+                "ブレイク接近": "near-breakout",
+                "右肩上がり確認": "recovering",
+                "底固め中": "forming",
+            }.get(str(row["Stage"]), "forming")
+            price = "—" if pd.isna(row["Price"]) else f'${float(row["Price"]):,.2f}'
+            chart_symbol = quote(f'{row["Exchange"]}:{row["Ticker"]}', safe="")
+            yahoo_symbol = quote(str(row["Ticker"]), safe="")
             volume_ratio = "" if pd.isna(row["VolumeRatio4wVs12w"]) else str(row["VolumeRatio4wVs12w"])
             recovery = "" if pd.isna(row["RecoveryPct"]) else str(row["RecoveryPct"])
             bottom_weeks = "" if pd.isna(row["BottomWeeks"]) else str(row["BottomWeeks"])
-            rows.append(
-                f'<tr data-row-index="{row_index}" data-score="{score}" '
-                f'data-stage="{stage}" data-exchange="{exchange_attr}" '
+            cards.append(
+                f'<article class="candidate" aria-labelledby="ticker-{row_index}" '
+                f'data-row-index="{row_index}" data-score="{score}" '
+                f'data-stage="{stage}" data-exchange="{exchange}" '
                 f'data-volume="{volume_ratio}" data-recovery="{recovery}" '
-                f'data-bottom-weeks="{bottom_weeks}"{row_style}>'
-                + "".join(cells) + "</tr>"
+                f'data-bottom-weeks="{bottom_weeks}"{hidden}>'
+                f'<div class="candidate-heading"><div><h2 id="ticker-{row_index}">{ticker}</h2>'
+                f'<span class="exchange">{exchange}</span></div>'
+                f'<div class="score"><span class="score-label">点数</span>'
+                f'<strong>{html.escape(score)}</strong><span class="score-unit"> / 100</span></div></div>'
+                f'<div class="candidate-overview"><span class="stage {stage_class}">{stage}</span>'
+                f'<div class="price"><span>株価</span><strong>{price}</strong></div></div>'
+                f'<div class="candidate-actions"><a class="chart-link" '
+                f'href="https://www.tradingview.com/chart/?symbol={chart_symbol}" '
+                f'target="_blank" rel="noopener noreferrer" '
+                f'aria-label="{ticker}のチャートをTradingViewで開く（新しいタブ）">'
+                f'チャートを見る <span aria-hidden="true">↗</span></a>'
+                f'<details class="candidate-details"><summary '
+                f'aria-label="{ticker}の詳細"><span>詳細</span><span class="chevron" aria-hidden="true"></span>'
+                f'</summary><div class="detail-body"><dl>{"".join(details)}</dl>'
+                f'<a class="yahoo-link" href="https://finance.yahoo.com/quote/{yahoo_symbol}" '
+                f'target="_blank" rel="noopener noreferrer" '
+                f'aria-label="{ticker}をYahoo Financeで開く（新しいタブ）">'
+                f'Yahoo Financeで見る <span aria-hidden="true">↗</span></a>'
+                f'</div></details></div></article>'
             )
-        headers = "".join(f"<th>{labels[c]}</th>" for c in columns)
         body = f"""
+<details class="filter-panel" id="filter-panel">
+<summary><span>絞り込み・並び替え</span><span class="filter-status">
+<span id="active-filter-count" hidden></span><span id="sort-label">点数順</span>
+<span class="chevron" aria-hidden="true"></span></span></summary>
 <div class="controls">
   <label>並び替え
     <select id="sort-select" onchange="applyControls()">
@@ -158,36 +186,39 @@ def render_html(results: pd.DataFrame, output_path: Path, total_count: int) -> N
   </label>
 </div>
 
-<div class="limit-buttons">
-  <button type="button" onclick="setLimit(20)">20件</button>
-  <button type="button" onclick="setLimit(50)">50件</button>
-  <button type="button" onclick="setLimit(100)">100件</button>
-  <button type="button" onclick="setLimit('all')">全件</button>
+<label class="limit-control">表示件数
+  <select id="limit-select" onchange="applyControls()">
+    <option value="20">20件</option>
+    <option value="50">50件</option>
+    <option value="100">100件</option>
+    <option value="all">全件</option>
+  </select>
+</label>
+</details>
+
+<div class="list-heading"><span>候補一覧</span><span role="status" aria-live="polite" aria-atomic="true">
+該当 <strong id="matched-count">{len(results)}</strong>件<span class="count-divider">/</span>
+表示 <strong id="visible-count">{min(20, len(results))}</strong>件</span></div>
+<p class="empty-state" id="filter-empty" hidden>条件に合う候補はありません。絞り込み条件を変更してください。</p>
+<div class="candidate-list" id="candidate-list">
+{"".join(cards)}
 </div>
 
-<div class="table-wrap"><table><thead><tr>{headers}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>
-
 <script>
-let currentLimit = 20;
-
 function numberValue(row, name) {{
   const value = parseFloat(row.dataset[name]);
   return Number.isFinite(value) ? value : -Infinity;
 }}
 
-function setLimit(limit) {{
-  currentLimit = limit;
-  applyControls();
-}}
-
 function applyControls() {{
-  const tbody = document.querySelector("tbody");
-  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const list = document.getElementById("candidate-list");
+  const rows = Array.from(list.querySelectorAll(".candidate"));
 
   const sortBy = document.getElementById("sort-select").value;
   const stage = document.getElementById("stage-filter").value;
   const minScore = parseFloat(document.getElementById("score-filter").value);
   const exchange = document.getElementById("exchange-filter").value;
+  const limit = document.getElementById("limit-select").value;
 
   const sortKeys = {{
     "score": "score",
@@ -199,10 +230,11 @@ function applyControls() {{
   const key = sortKeys[sortBy];
 
   rows.sort((a, b) => {{
-    return numberValue(b, key) - numberValue(a, key);
+    return numberValue(b, key) - numberValue(a, key)
+      || numberValue(a, "rowIndex") - numberValue(b, "rowIndex");
   }});
 
-  rows.forEach(row => tbody.appendChild(row));
+  rows.forEach(row => list.appendChild(row));
 
   let matched = 0;
   let shown = 0;
@@ -224,19 +256,28 @@ function applyControls() {{
     if (matches) {{
       matched += 1;
 
-      if (currentLimit === "all" || shown < currentLimit) {{
-        row.style.display = "";
+      if (limit === "all" || shown < Number(limit)) {{
+        row.hidden = false;
         shown += 1;
       }} else {{
-        row.style.display = "none";
+        row.hidden = true;
       }}
     }} else {{
-      row.style.display = "none";
+      row.hidden = true;
     }}
   }});
 
   document.getElementById("matched-count").textContent = matched;
   document.getElementById("visible-count").textContent = shown;
+  document.getElementById("filter-empty").hidden = matched !== 0;
+
+  const activeCount = Number(stage !== "all") + Number(minScore > 0) + Number(exchange !== "all");
+  const badge = document.getElementById("active-filter-count");
+  badge.hidden = activeCount === 0;
+  badge.textContent = `${{activeCount}}条件`;
+  document.getElementById("sort-label").textContent = {{
+    "score": "点数順", "volume": "出来高比順", "recovery": "回復率順", "bottom-weeks": "底値圏週数順"
+  }}[sortBy];
 }}
 
 applyControls();
@@ -248,23 +289,106 @@ applyControls();
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>米国株ソーサーボトム候補</title>
 <style>
-:root{{color-scheme:light dark}}body{{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:18px;line-height:1.5;background:Canvas;color:CanvasText}}main{{max-width:1500px;margin:auto}}h1{{font-size:1.35rem;margin-bottom:4px}}.meta{{font-size:.9rem;margin-bottom:12px}}.generated{{opacity:.65}}.update-status{{display:flex;flex-wrap:wrap;gap:6px;margin:5px 0 7px}}.update-status strong{{padding:3px 8px;border-radius:999px;background:#e8f5e9;color:#1f5d2c;font-size:.9rem}}.count-badges{{display:inline-flex;gap:6px;margin-left:8px}}.count-badges strong{{padding:3px 8px;border-radius:999px;background:#e6f0ff;color:#173b70;font-size:.9rem}}.controls{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:8px}}.controls label{{font-size:.85rem;font-weight:600}}.controls select{{display:block;width:100%;margin-top:2px}}.table-wrap{{overflow-x:auto;border:1px solid #8885;border-radius:10px}}table{{border-collapse:collapse;width:100%;min-width:1050px}}th,td{{padding:10px 8px;border-bottom:1px solid #8884;text-align:right;white-space:nowrap}}th{{position:sticky;top:0;background:Canvas}}th:first-child,td:first-child,th:nth-child(3),td:nth-child(3){{text-align:left}}tbody tr:hover{{background:#8882}}a{{font-weight:700}}.note{{margin-top:14px;padding:12px;border:1px solid #8885;border-radius:10px}}@media(max-width:700px){{body{{padding:6px}}.meta{{margin-bottom:10px}}.generated{{display:block;margin-bottom:5px}}.count-badges{{margin-left:0}}.controls{{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 8px}}.controls label{{font-size:.82rem}}.controls select{{font-size:.9rem}}.table-wrap{{border:0;overflow:visible}}table,thead,tbody,th{{display:block;min-width:0}}thead{{display:none}}tr{{display:flex;flex-wrap:wrap;border:1px solid #8885;border-radius:9px;margin-bottom:5px;padding:4px}}td{{display:block;width:50%;box-sizing:border-box;border:0;padding:1px 4px;font-size:.87rem;line-height:1.25;text-align:right!important}}td::before{{content:attr(data-label);float:left;opacity:.68}}td:first-child{{width:100%;font-size:1.05rem;line-height:1.3;padding:1px 4px 2px}}}}
-</style></head><body><main><h1>米国株・週足ソーサーボトム候補</h1>
-<div class="meta">
-<span class="generated">生成日時: {generated}</span>
-<div class="update-status">
-<strong>最終基準日 {current_market_date}</strong>
-<strong>現在候補 {total_count}件</strong>
-<strong>前回比 {delta_text}</strong>
-</div>
-<span class="count-badges">
-<strong>条件通過 {total_count}件</strong>
-<strong>絞り込み該当 <span id="matched-count">{len(results)}</span>件</strong>
-<strong>表示 <span id="visible-count">{min(20, len(results))}</span>件</strong>
-</span>
-</div>
+:root {{
+  color-scheme: light dark;
+  --page: #f5f7f8; --surface: #fff; --ink: #192a32; --muted: #5a6b73;
+  --line: #dce4e7; --soft: #edf2f4; --accent: #156753; --accent-soft: #e8f4ed;
+}}
+* {{ box-sizing: border-box; }}
+[hidden] {{ display: none !important; }}
+body {{ margin: 0; padding: 26px 16px; background: var(--page); color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", "Yu Gothic", sans-serif; line-height: 1.5; }}
+main {{ max-width: 920px; margin: auto; }}
+.page-heading {{ margin-bottom: 20px; }}
+.eyebrow {{ margin: 0 0 4px; color: var(--muted); font-size: 13px; font-weight: 600; }}
+h1 {{ font-size: 24px; line-height: 1.45; letter-spacing: -.025em; margin: 0 0 12px; }}
+.market-date {{ color: var(--muted); font-size: 13px; margin: 0 0 7px; }}
+.update-status {{ display: flex; align-items: baseline; gap: 12px; font-size: 13px; color: var(--muted); }}
+.total-count {{ color: var(--ink); }}
+.total-count strong {{ font-size: 26px; letter-spacing: -.03em; margin-right: 3px; }}
+.filter-panel {{ background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }}
+summary {{ list-style: none; cursor: pointer; touch-action: manipulation; }}
+summary::-webkit-details-marker {{ display: none; }}
+.filter-panel > summary {{ min-height: 52px; padding: 12px 14px; display: flex;
+  align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 600; }}
+.filter-status {{ display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  color: var(--muted); font-size: 12px; font-weight: 400; }}
+#active-filter-count {{ background: var(--accent-soft); color: var(--accent); padding: 2px 7px; border-radius: 6px; white-space: nowrap; }}
+.chevron {{ width: 7px; height: 7px; border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor; transform: rotate(45deg); margin: -3px 2px 0 3px; flex-shrink: 0; }}
+details[open] > summary .chevron {{ transform: rotate(225deg); margin-top: 3px; }}
+.controls {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 4px 14px 14px; }}
+.controls label, .limit-control {{ color: var(--muted); font-size: 12px; }}
+select {{ display: block; width: 100%; min-width: 0; min-height: 44px; margin-top: 5px;
+  padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; }}
+.limit-control {{ display: block; margin: 0 14px 14px; max-width: 180px; }}
+.list-heading {{ display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin: 20px 2px 10px; font-size: 13px; font-weight: 600; }}
+.list-heading [role="status"] {{ color: var(--muted); font-size: 12px; font-weight: 400; }}
+.list-heading strong {{ color: var(--ink); font-variant-numeric: tabular-nums; }}
+.count-divider {{ padding: 0 6px; color: var(--line); }}
+.candidate-list {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }}
+.candidate {{ min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }}
+.candidate-heading {{ display: flex; justify-content: space-between; align-items: center; gap: 12px; }}
+h2 {{ margin: 0; font-size: 23px; line-height: 1.15; letter-spacing: -.02em; }}
+.exchange {{ color: var(--muted); font-size: 11px; }}
+.score {{ text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }}
+.score-label {{ display: block; color: var(--muted); font-size: 11px; line-height: 1.2; }}
+.score strong {{ color: var(--accent); font-size: 26px; font-weight: 700; letter-spacing: -.04em; }}
+.score-unit {{ color: var(--muted); font-size: 11px; }}
+.candidate-overview {{ display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 0; }}
+.stage {{ display: inline-block; border-radius: 6px; padding: 4px 8px; font-size: 12px; font-weight: 600; }}
+.near-breakout {{ background: var(--accent-soft); color: var(--accent); }}
+.recovering {{ background: #edf1fc; color: #425a93; }}
+.forming {{ background: var(--soft); color: var(--muted); }}
+.price {{ display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }}
+.price span {{ color: var(--muted); font-size: 11px; }}
+.price strong {{ font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }}
+.candidate-actions {{ position: relative; }}
+a {{ color: var(--accent); text-underline-offset: 3px; }}
+.chart-link {{ position: absolute; left: 0; top: 0; right: 92px; min-height: 44px;
+  display: flex; align-items: center; justify-content: center; gap: 12px; border-radius: 8px;
+  background: var(--accent); color: #fff; text-decoration: none; font-size: 14px; font-weight: 600; touch-action: manipulation; }}
+.candidate-details > summary {{ display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-left: auto; width: 80px; min-height: 44px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }}
+.candidate-details[open] > summary {{ background: var(--soft); }}
+.detail-body {{ margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }}
+dl {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; margin: 0; }}
+dt {{ color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }}
+dd {{ margin: 3px 0 0; font-size: 15px; font-variant-numeric: tabular-nums; }}
+.yahoo-link {{ display: flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 12px; font-size: 13px; }}
+.empty-state {{ padding: 20px 16px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); color: var(--muted); font-size: 14px; }}
+.note {{ color: var(--muted); font-size: 11px; line-height: 1.8; margin: 24px 2px 8px; }}
+.generated {{ color: var(--muted); font-size: 10px; margin: 0 2px; }}
+a:focus-visible, summary:focus-visible, select:focus-visible {{ outline: 3px solid var(--accent); outline-offset: 3px; }}
+@media (hover: hover) {{ .chart-link:hover {{ filter: brightness(1.1); }} summary:hover {{ color: var(--accent); }} }}
+@media (max-width: 700px) {{
+  body {{ padding: 22px 14px; }}
+  main {{ max-width: 520px; }}
+  h1 {{ font-size: 22px; }}
+  .candidate-list {{ grid-template-columns: minmax(0, 1fr); gap: 10px; }}
+}}
+@media (max-width: 350px) {{
+  body {{ padding-left: 10px; padding-right: 10px; }}
+  .candidate {{ padding: 14px; }}
+  #sort-label {{ display: none; }}
+}}
+@media (prefers-color-scheme: dark) {{
+  :root {{ --page: #111b20; --surface: #1b282e; --ink: #edf3f5; --muted: #a6b8c0;
+    --line: #35474f; --soft: #26373f; --accent: #8bdfbc; --accent-soft: #243e35; }}
+  .chart-link {{ background: #21694f; color: #fff; }}
+  .recovering {{ background: #29364c; color: #b8caff; }}
+}}
+</style></head><body><main>
+<header class="page-heading"><p class="eyebrow">米国株スクリーナー</p>
+<h1>週足ソーサーボトム候補</h1>
+<p class="market-date">データ基準日 <time>{current_market_date}</time></p>
+<div class="update-status"><span class="total-count">候補 <strong>{total_count}</strong>件</span>
+<span>前回比 {delta_text}</span></div></header>
 {body}
 <div class="note">候補抽出用です。決算、業績、希薄化、ニュースを確認してから投資判断してください。40週線はおおむね200取引日線に相当します。</div>
+<p class="generated">ページ生成日時: {generated}</p>
 </main></body></html>'''
     output_path.write_text(page, encoding="utf-8")
 
