@@ -13,7 +13,7 @@ import pandas as pd
 from pullback_backtest_engine import Series, evaluate_window
 from pullback_data import Sessions, earnings
 from pullback_earnings_archive import archive_snapshot, import_cache, latest_known, load_snapshots, persist_archives
-from pullback_review import compare_orders, known_earnings, next_session_diagnostic, opening_fill, opening_limit
+from pullback_review import compare_orders, known_earnings, next_session_diagnostic, observed_schedules, opening_fill, opening_limit
 from pullback_settings import load_config
 from test_pullback import market_frames
 
@@ -125,6 +125,19 @@ class ReviewTests(unittest.TestCase):
             self.assertEqual(len(load_snapshots(history,'TEST')),1)
             self.assertEqual(first.read_bytes(),original)
             self.assertEqual((history/'TEST'/first.name).read_bytes(),original)
+
+    def test_replay_reads_durable_history_even_after_cache_observation_is_lost(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            cache=root/'cache/daily/earnings/snapshots'
+            history=root/'history/pullback/earnings'
+            first=archive_snapshot(cache,'TEST',self.payload())
+            persist_archives(cache,history)
+            self.assertEqual(len(observed_schedules(root,'TEST')),1)
+            first.unlink()
+            observations=observed_schedules(root,'TEST')
+            self.assertEqual(len(observations),1)
+            self.assertEqual(known_earnings(self.row(),observations,self.sessions,self.config)['Status'],'outside_holding')
 
     def test_earnings_gate_uses_only_received_schedule_and_unknown_stays_unknown(self):
         row=self.row()

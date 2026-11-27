@@ -128,6 +128,13 @@ def known_earnings(row, snapshots, sessions, config):
     return result
 
 
+def observed_schedules(root, ticker):
+    root = Path(root)
+    stores = [root/'cache/daily/earnings/snapshots',root/'history/pullback/earnings']
+    unique = {json.dumps(item,sort_keys=True):item for store in stores for item in load_snapshots(store,ticker)}
+    return list(unique.values())
+
+
 def compare_orders(events, orders):
     combined = events.merge(orders, on='EpisodeStageID', validate='one_to_one')
     results = []
@@ -182,7 +189,7 @@ def run(root, scope='full'):
         if cached is None or cached[1]['sha256'] != snapshots_expected[ticker]:
             raise ValueError(f'Missing/changed baseline snapshot: {ticker}')
         stock = Series(ticker, cached[0], sessions, config)
-        observed = load_snapshots(archive, ticker)
+        observed = observed_schedules(root, ticker)
         for row in group.to_dict('records'):
             orders.append(opening_fill(row, stock, sessions, as_of, config['rules']['minimum_reward_risk']))
             coverage.append(known_earnings(row, observed, sessions, config))
