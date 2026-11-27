@@ -1,0 +1,4 @@
+# Keep baseline source hashes identical on Windows and Linux.
+*.py text eol=lf
+*.json text eol=lf
+*.yml text eol=lf

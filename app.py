@@ -14,6 +14,7 @@ from config import CONFIG
 from market_caps import add_market_caps, fetch_snapshot, format_market_cap, format_market_rank
 from screener import analyse_ticker, sort_results
 from universe import fetch_us_equity_universe
+from site_navigation import add_navigation
 
 
 def extract_ticker_frame(downloaded: pd.DataFrame, ticker: str, batch_size: int) -> pd.DataFrame:
@@ -405,7 +406,7 @@ a:focus-visible, summary:focus-visible, select:focus-visible {{ outline: 3px sol
 <div class="note">候補抽出用です。決算、業績、希薄化、ニュースを確認してから投資判断してください。40週線はおおむね200取引日線に相当します。</div>
 <p class="generated">ページ生成日時: {generated}</p>
 </main></body></html>'''
-    output_path.write_text(page, encoding="utf-8")
+    output_path.write_text(add_navigation(page), encoding="utf-8")
 
 
 def run_scan(mode: str, refresh_universe: bool) -> pd.DataFrame:

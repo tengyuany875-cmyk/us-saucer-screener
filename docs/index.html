@@ -96,7 +96,14 @@ a:focus-visible, summary:focus-visible, select:focus-visible { outline: 3px soli
   .chart-link { background: #21694f; color: #fff; }
   .recovering { background: #29364c; color: #b8caff; }
 }
-</style></head><body><main>
+
+.category-nav { display:grid; grid-template-columns:1.25fr 1fr; gap:4px; padding:4px;
+  margin-bottom:22px; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+.category-nav a { display:flex; align-items:center; justify-content:center; min-height:46px;
+  padding:6px 4px; border-radius:8px; color:var(--muted); text-decoration:none; font-size:13px; font-weight:600; }
+.category-nav a[aria-current="page"] { color:var(--accent); background:var(--accent-soft); }
+@media(max-width:350px) { .category-nav a { font-size:12px; } }
+</style></head><body><main><!-- categories:start --><nav class="category-nav" aria-label="スクリーナーのカテゴリー"><a href="index.html" aria-current="page">週足ソーサーボトム</a><a href="daily.html">日足押し目</a></nav><!-- categories:end -->
 <header class="page-heading"><p class="eyebrow">米国株スクリーナー</p>
 <h1>週足ソーサーボトム候補</h1>
 <p class="market-date">データ基準日 <time>2026-11-16</time></p>

@@ -7,6 +7,11 @@ on:
 
 permissions:
   contents: write
+  pages: write
+
+concurrency:
+  group: screener-updates-main
+  cancel-in-progress: false
 
 jobs:
   update:
@@ -24,6 +29,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Run weekly regression tests
+        run: |
+          python -m unittest -v test_market_caps test_weekly_regression
+          python synthetic_test.py
+
       - name: Run full screener
         run: python app.py --mode full
 
@@ -31,12 +41,20 @@ jobs:
         run: python history_update.py
 
       - name: Update GitHub Pages
-        run: cp output/results.html docs/index.html
+        run: python publish_site.py weekly --source output/results.html
 
       - name: Save updated data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/index.html history/candidates.csv history/weekly_tracking.csv
-          git diff --cached --quiet || git commit -m "Weekly screener update"
-          git push
+          if ! git diff --cached --quiet; then
+            git commit -m "Weekly screener update"
+            git pull --rebase origin main
+            git push
+          fi
+
+      - name: Request GitHub Pages build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds" --silent

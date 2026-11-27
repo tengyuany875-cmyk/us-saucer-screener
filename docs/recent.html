@@ -1,0 +1,172 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>過去日の反発確認例 | 米国株スクリーナー</title><style>
+:root {
+  color-scheme: light dark;
+  --page: #f5f7f8; --surface: #fff; --ink: #192a32; --muted: #5a6b73;
+  --line: #dce4e7; --soft: #edf2f4; --accent: #156753; --accent-soft: #e8f4ed;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; padding: 26px 16px; background: var(--page); color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", "Yu Gothic", sans-serif; line-height: 1.5; }
+main { max-width: 920px; margin: auto; }
+.page-heading { margin-bottom: 20px; }
+.eyebrow { margin: 0 0 4px; color: var(--muted); font-size: 13px; font-weight: 600; }
+h1 { font-size: 24px; line-height: 1.45; letter-spacing: -.025em; margin: 0 0 12px; }
+.market-date { color: var(--muted); font-size: 13px; margin: 0 0 7px; }
+.update-status { display: flex; align-items: baseline; gap: 12px; font-size: 13px; color: var(--muted); }
+.total-count { color: var(--ink); }
+.total-count strong { font-size: 26px; letter-spacing: -.03em; margin-right: 3px; }
+.filter-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+summary { list-style: none; cursor: pointer; touch-action: manipulation; }
+summary::-webkit-details-marker { display: none; }
+.filter-panel > summary { min-height: 52px; padding: 12px 14px; display: flex;
+  align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 600; }
+.filter-status { display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  color: var(--muted); font-size: 12px; font-weight: 400; }
+#active-filter-count { background: var(--accent-soft); color: var(--accent); padding: 2px 7px; border-radius: 6px; white-space: nowrap; }
+.chevron { width: 7px; height: 7px; border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor; transform: rotate(45deg); margin: -3px 2px 0 3px; flex-shrink: 0; }
+details[open] > summary .chevron { transform: rotate(225deg); margin-top: 3px; }
+.controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 4px 14px 14px; }
+.controls label, .limit-control { color: var(--muted); font-size: 12px; }
+select { display: block; width: 100%; min-width: 0; min-height: 44px; margin-top: 5px;
+  padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; }
+.limit-control { display: block; margin: 0 14px 14px; max-width: 180px; }
+.list-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin: 20px 2px 10px; font-size: 13px; font-weight: 600; }
+.list-heading [role="status"] { color: var(--muted); font-size: 12px; font-weight: 400; }
+.list-heading strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.count-divider { padding: 0 6px; color: var(--line); }
+.candidate-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.candidate { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.candidate-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+h2 { margin: 0; font-size: 23px; line-height: 1.15; letter-spacing: -.02em; }
+.exchange { color: var(--muted); font-size: 11px; }
+.score { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.score-label { display: block; color: var(--muted); font-size: 11px; line-height: 1.2; }
+.score strong { color: var(--accent); font-size: 26px; font-weight: 700; letter-spacing: -.04em; }
+.score-unit { color: var(--muted); font-size: 11px; }
+.candidate-overview { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 0; }
+.stage { display: inline-block; border-radius: 6px; padding: 4px 8px; font-size: 12px; font-weight: 600; }
+.near-breakout { background: var(--accent-soft); color: var(--accent); }
+.recovering { background: #edf1fc; color: #425a93; }
+.forming { background: var(--soft); color: var(--muted); }
+.price { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.price span { color: var(--muted); font-size: 11px; }
+.price strong { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.market-cap-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px;
+  margin: -2px 0 12px; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.market-cap-line > span { white-space: nowrap; }
+.candidate-actions { position: relative; }
+a { color: var(--accent); text-underline-offset: 3px; }
+.chart-link { position: absolute; left: 0; top: 0; right: 92px; min-height: 44px;
+  display: flex; align-items: center; justify-content: center; gap: 12px; border-radius: 8px;
+  background: var(--accent); color: #fff; text-decoration: none; font-size: 14px; font-weight: 600; touch-action: manipulation; }
+.candidate-details > summary { display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-left: auto; width: 80px; min-height: 44px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
+.candidate-details[open] > summary { background: var(--soft); }
+.detail-body { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; margin: 0; }
+dt { color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+dd { margin: 3px 0 0; font-size: 15px; font-variant-numeric: tabular-nums; }
+.yahoo-link { display: flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 12px; font-size: 13px; }
+.empty-state { padding: 20px 16px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); color: var(--muted); font-size: 14px; }
+.note { color: var(--muted); font-size: 11px; line-height: 1.8; margin: 24px 2px 8px; }
+.generated { color: var(--muted); font-size: 10px; margin: 0 2px; }
+a:focus-visible, summary:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+@media (hover: hover) { .chart-link:hover { filter: brightness(1.1); } summary:hover { color: var(--accent); } }
+@media (max-width: 700px) {
+  body { padding: 22px 14px; }
+  main { max-width: 520px; }
+  h1 { font-size: 22px; }
+  .candidate-list { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+}
+@media (max-width: 350px) {
+  body { padding-left: 10px; padding-right: 10px; }
+  .candidate { padding: 14px; }
+  #sort-label { display: none; }
+}
+@media (prefers-color-scheme: dark) {
+  :root { --page: #111b20; --surface: #1b282e; --ink: #edf3f5; --muted: #a6b8c0;
+    --line: #35474f; --soft: #26373f; --accent: #8bdfbc; --accent-soft: #243e35; }
+  .chart-link { background: #21694f; color: #fff; }
+  .recovering { background: #29364c; color: #b8caff; }
+}
+
+.category-nav { display:grid; grid-template-columns:1.25fr 1fr; gap:4px; padding:4px;
+  margin-bottom:22px; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+.category-nav a { display:flex; align-items:center; justify-content:center; min-height:46px;
+  padding:6px 4px; border-radius:8px; color:var(--muted); text-decoration:none; font-size:13px; font-weight:600; }
+.category-nav a[aria-current="page"] { color:var(--accent); background:var(--accent-soft); }
+@media(max-width:350px) { .category-nav a { font-size:12px; } }
+
+
+.category-nav { display:grid; grid-template-columns:1.25fr 1fr; gap:4px; padding:4px;
+  margin-bottom:22px; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+.category-nav a { display:flex; align-items:center; justify-content:center; min-height:46px;
+  padding:6px 4px; border-radius:8px; color:var(--muted); text-decoration:none; font-size:13px; font-weight:600; }
+.category-nav a[aria-current="page"] { color:var(--accent); background:var(--accent-soft); }
+@media(max-width:350px) { .category-nav a { font-size:12px; } }
+
+.local-label { margin: 0 2px 8px; font-size: 11px; color: var(--muted); }
+.local-note { margin: 0 0 18px; padding: 10px 12px; font-size: 12px; border-left: 3px solid var(--line); color: var(--muted); }
+.market-context { margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+.data-details { margin: 14px 0 20px; font-size: 12px; color: var(--muted); }
+.data-details > summary, .review-section > summary { display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; min-height: 44px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.data-details .detail-body { margin: 0; padding: 10px 14px; border-top: none; }
+.data-details p { margin: 6px 0; }
+.review-section { margin-top: 18px; font-size: 13px; }
+.section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 24px 2px 4px; }
+.section-heading h2 { font-size: 17px; line-height: 1.5; letter-spacing: 0; }
+.section-heading span { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.section-description { margin: 0 2px 10px; color: var(--muted); font-size: 12px; }
+.section-empty { margin: 0; padding: 13px 14px; border: 1px dashed var(--line); border-radius: 10px; font-size: 13px; color: var(--muted); }
+.candidate .company-name { margin: 3px 0 0; max-width: 220px; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+.review-badge { display: inline-block; margin: 0 0 8px; padding: 3px 7px; border-radius: 6px; font-size: 11px; background: var(--soft); color: var(--ink); }
+.confirmed { color: var(--accent); background: var(--accent-soft); }
+.candidate .detail-body { font-size: 12px; overflow-wrap: anywhere; }
+.detail-body h3 { font-size: 13px; margin: 18px 0 8px; }
+.detail-body p { margin: 8px 0; }
+.score-breakdown { gap: 10px 12px; }
+.score-breakdown dd { font-size: 13px; }
+.archive-link { display: flex; align-items: center; min-height: 44px; font-size: 13px; }
+.archive-date { margin: 0 0 10px; font-size: 12px; color: var(--muted); }
+.overflow-section { margin-top: 20px; }
+.overflow-section > summary { min-height: 44px; padding: 8px 2px; font-size: 13px; }
+.history-note { font-size: 12px; color: var(--muted); }
+@media (max-width:350px) { .category-nav a { font-size: 12px; } .candidate .company-name { max-width: 160px; } }
+</style></head><body><main><nav class="category-nav" aria-label="スクリーナーのカテゴリー"><a href="index.html">週足ソーサーボトム</a><a href="daily.html" aria-current="page">日足押し目</a></nav><header class="page-heading"><p class="eyebrow">過去日の試験判定</p><h1>反発確認済みの検出例</h1></header><p class="local-note">過去日の価格条件を確認した試験です。決算予定は未再現のため、主候補には含めません。</p><p class="archive-date">対象：2026-11-18 〜 2026-11-25 / 6営業日。時価総額は現在取得した参考値です。</p><details class="overflow-section"><summary>過去日試験の前提</summary><p class="history-note">現在の銘柄一覧・取得時点の調整済み株価を使う事後の価格条件確認です。過去の決算予定は再現していないため全件を決算不明として扱い、主候補へ選出しません。検出時点の反発確率や売買成績を検証するバックテストではありません。</p></details><details class="overflow-section"><summary>形成中から反発確認済みへの移行を見る</summary><p class="history-note">SPNT：2026-11-18 形成中 62.70 / 75点 → 2026-11-19 反発確認済み 77.09 / 100点</p><div class="candidate-list"><article class="candidate" aria-labelledby="ticker-transition-0" data-ticker="SPNT" data-stage="forming" data-bucket="review">
+<div class="candidate-heading"><div><h2 id="ticker-transition-0">SPNT</h2><span class="exchange">NYSE</span></div>
+<div class="score"><span class="score-label">点数</span><strong>62.70</strong><span class="score-unit"> / 75</span></div></div>
+<div class="candidate-overview"><span class="stage forming">押し目形成中</span><div class="price"><span>株価</span><strong>$25.92</strong></div></div>
+<p class="review-badge">過去日の価格条件のみ・決算未再現</p><p class="market-cap-line" title="Nasdaq取得: 2026-11-27 22:04 JST。株価基準日と異なる場合があります。">時価総額：31億ドル</p>
+<div class="candidate-actions"><a class="chart-link" href="https://www.tradingview.com/chart/?symbol=NYSE%3ASPNT&amp;interval=D" target="_blank" rel="noopener noreferrer" aria-label="SPNTの日足をTradingViewで開く（新しいタブ）">チャートを見る <span aria-hidden="true">↗</span></a>
+<details class="candidate-details"><summary aria-label="SPNTの詳細"><span>詳細</span><span class="chevron" aria-hidden="true"></span></summary>
+<div class="detail-body"><p class="company-name">SiriusPoint Ltd. Common Shares</p>
+<dl><div><dt>高値からの調整幅</dt><dd>6.97%</dd></div><div><dt>想定リスクリワード</dt><dd>1 : 3.75</dd></div></dl>
+<h3>検出理由</h3><p>終値&gt;50日線&gt;200日線、50日線上昇率 1.78% / SPY比63営業日リターン +14.42% / 4営業日の調整、深さ 2.66 ATR / 6.97% / 調整中RSI安値 49.6、高値までの余地/想定リスク 3.75 / 20日EMA付近で押し目形成中。反発確認条件は未成立</p><h3>スコア内訳</h3><dl class="score-breakdown"><div><dt>トレンド</dt><dd>15.76 / 20</dd></div><div><dt>相対強度</dt><dd>14.71 / 15</dd></div><div><dt>押し目の形</dt><dd>14.41 / 20</dd></div><div><dt>流動性</dt><dd>2.82 / 5</dd></div><div><dt>リスクリワード</dt><dd>15.00 / 15</dd></div></dl>
+<p>点数は反発確率ではありません。形成中は共通条件のみ75点満点です。</p>
+<h3>判定時点の参考値</h3><dl><div><dt>調整期間</dt><dd>4営業日</dd></div><div><dt>高値の日付</dt><dd>2026-11-12</dd></div>
+<div><dt>想定ストップ（調整後価格）</dt><dd>$25.49</dd></div><div><dt>調整安値までの深さ</dt><dd>2.66 ATR</dd></div></dl>
+<p>調整幅は高値から調整安値まで。リスクリワードはリスク1に対する高値までの上値余地で、約定を保証する値ではありません。</p>
+<h3>決算予定</h3><p>不明 / 不明</p><p>確認日時：不明</p>
+<p>データ基準日：2026-11-18</p>
+<a class="yahoo-link" href="https://finance.yahoo.com/quote/SPNT" target="_blank" rel="noopener noreferrer">Yahoo Financeで見る ↗</a></div></details></div></article></div></details><section aria-labelledby="section-2026-11-19"><div class="section-heading"><h2 id="section-2026-11-19">2026-11-19</h2><span>1件</span></div><p class="section-description">当日の引けまでの価格条件を満たした例。過去の主候補としての選出ではありません。</p><div class="candidate-list"><article class="candidate" aria-labelledby="ticker-2026-11-19-0" data-ticker="SPNT" data-stage="confirmed" data-bucket="review">
+<div class="candidate-heading"><div><h2 id="ticker-2026-11-19-0">SPNT</h2><span class="exchange">NYSE</span></div>
+<div class="score"><span class="score-label">点数</span><strong>77.09</strong><span class="score-unit"> / 100</span></div></div>
+<div class="candidate-overview"><span class="stage confirmed">反発確認済み</span><div class="price"><span>株価</span><strong>$26.27</strong></div></div>
+<p class="review-badge">過去日の価格条件のみ・決算未再現</p><p class="market-cap-line" title="Nasdaq取得: 2026-11-27 22:04 JST。株価基準日と異なる場合があります。">時価総額：31億ドル</p>
+<div class="candidate-actions"><a class="chart-link" href="https://www.tradingview.com/chart/?symbol=NYSE%3ASPNT&amp;interval=D" target="_blank" rel="noopener noreferrer" aria-label="SPNTの日足をTradingViewで開く（新しいタブ）">チャートを見る <span aria-hidden="true">↗</span></a>
+<details class="candidate-details"><summary aria-label="SPNTの詳細"><span>詳細</span><span class="chevron" aria-hidden="true"></span></summary>
+<div class="detail-body"><p class="company-name">SiriusPoint Ltd. Common Shares</p>
+<dl><div><dt>高値からの調整幅</dt><dd>6.97%</dd></div><div><dt>想定リスクリワード</dt><dd>1 : 1.63</dd></div></dl>
+<h3>検出理由</h3><p>終値&gt;50日線&gt;200日線、50日線上昇率 1.75% / SPY比63営業日リターン +18.62% / 4営業日の調整、深さ 2.66 ATR / 6.97% / 調整中RSI安値 49.6、高値までの余地/想定リスク 1.63 / 前日高値突破・20日EMA上・陽線、終値位置 92.4%、出来高比 2.01</p><h3>スコア内訳</h3><dl class="score-breakdown"><div><dt>トレンド</dt><dd>15.72 / 20</dd></div><div><dt>相対強度</dt><dd>15.00 / 15</dd></div><div><dt>押し目の形</dt><dd>14.41 / 20</dd></div><div><dt>流動性</dt><dd>2.87 / 5</dd></div><div><dt>リスクリワード</dt><dd>8.16 / 15</dd></div><div><dt>反発</dt><dd>20.93 / 25</dd></div></dl>
+<p>点数は反発確率ではありません。形成中は共通条件のみ75点満点です。</p>
+<h3>判定時点の参考値</h3><dl><div><dt>調整期間</dt><dd>4営業日</dd></div><div><dt>高値の日付</dt><dd>2026-11-12</dd></div>
+<div><dt>想定ストップ（調整後価格）</dt><dd>$25.49</dd></div><div><dt>調整安値までの深さ</dt><dd>2.66 ATR</dd></div></dl>
+<p>調整幅は高値から調整安値まで。リスクリワードはリスク1に対する高値までの上値余地で、約定を保証する値ではありません。</p>
+<h3>決算予定</h3><p>不明 / 不明</p><p>確認日時：不明</p>
+<p>データ基準日：2026-11-19</p>
+<a class="yahoo-link" href="https://finance.yahoo.com/quote/SPNT" target="_blank" rel="noopener noreferrer">Yahoo Financeで見る ↗</a></div></details></div></article></div></section><a class="archive-link" href="daily.html">最新の確定日の候補に戻る →</a></main></body></html>
