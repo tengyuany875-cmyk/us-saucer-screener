@@ -94,13 +94,13 @@
   },
   "summary": {
     "as_of": "2026-11-25",
-    "finished_at_utc": "2026-11-26T11:14:22.282608+00:00",
+    "finished_at_utc": "2026-11-27T14:08:38.860171+00:00",
     "market_regime": "SPYは50日線以下",
-    "price_success_rate": 0.9808929615909534,
-    "price_success_count": 5031,
-    "target_count": 5129,
-    "analysable_count": 4778,
-    "elapsed_seconds": 626.6,
+    "price_success_rate": 0.9793211080764729,
+    "price_success_count": 5020,
+    "target_count": 5126,
+    "analysable_count": 4765,
+    "elapsed_seconds": 704.143,
     "scope": "full_universe",
     "quality_passed": true,
     "selected_main": 0,
@@ -1539,7 +1539,7 @@
     ]
   },
   "caps": {
-    "fetched_at_utc": "2026-11-27T13:04:18.928252+00:00",
+    "fetched_at_utc": "2026-11-27T14:08:40.087765+00:00",
     "entries": {
       "AAPL": {
         "market_cap_usd": "5167353275560.00",
