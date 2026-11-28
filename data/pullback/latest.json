@@ -93,23 +93,47 @@
     }
   },
   "summary": {
-    "as_of": "2026-11-25",
-    "finished_at_utc": "2026-11-27T14:08:38.860171+00:00",
+    "as_of": "2026-11-27",
+    "finished_at_utc": "2026-11-28T04:15:15.822744+00:00",
     "market_regime": "SPYは50日線以下",
-    "price_success_rate": 0.9793211080764729,
-    "price_success_count": 5020,
+    "price_success_rate": 0.9699570815450643,
+    "price_success_count": 4972,
     "target_count": 5126,
-    "analysable_count": 4765,
-    "elapsed_seconds": 704.143,
+    "analysable_count": 4723,
+    "elapsed_seconds": 532.689,
     "scope": "full_universe",
     "quality_passed": true,
     "selected_main": 0,
-    "selected_watch": 0,
+    "selected_watch": 1,
     "review_count": 0,
     "earnings_excluded_count": 0,
     "update_policy": "米国市場終了後、日本時間の火〜土曜7:30頃に自動更新。休場日は更新せず、取得品質が未達の日は前回の正常結果を維持します。"
   },
-  "records": [],
+  "records": [
+    {
+      "Ticker": "CBOE",
+      "Name": "Cboe Global Markets, Inc. Common Stock",
+      "Exchange": "Cboe",
+      "MarketDate": "2026-11-27",
+      "Stage": "forming",
+      "Bucket": "watch",
+      "Selected": true,
+      "Score": 67.02,
+      "Price": 351.1199951171875,
+      "DrawdownPct": 8.70813315615524,
+      "RewardRisk": 4.19403147519756,
+      "ScoreBreakdown": "{\"liquidity\": 5.0, \"pullback\": 14.91, \"rebound\": 0.0, \"relative_strength\": 15.0, \"reward_risk\": 15.0, \"trend\": 17.11}",
+      "Reasons": "終値>50日線>200日線、50日線上昇率 5.11% / SPY比63営業日リターン +19.51% / 8営業日の調整、深さ 2.76 ATR / 8.71% / 調整中RSI安値 53.1、高値までの余地/想定リスク 4.19 / 20日EMA付近で押し目形成中。反発確認条件は未成立",
+      "PullbackDays": 8,
+      "SetupPeakDate": "2026-11-16",
+      "ReferenceStop": 344.2912398210465,
+      "DepthATR": 2.757255515283831,
+      "EarningsStatus": "outside_holding",
+      "EarningsNextDate": "2027-02-05T08:00:00-05:00",
+      "EarningsFetchedAtUTC": "2026-11-28T04:07:53.158180+00:00",
+      "SetupID": "2c8b90ae005e0ffc4ce6ab35"
+    }
+  ],
   "recent": {
     "summary": {
       "dates": [
@@ -1539,7 +1563,7 @@
     ]
   },
   "caps": {
-    "fetched_at_utc": "2026-11-27T14:08:40.087765+00:00",
+    "fetched_at_utc": "2026-11-28T04:15:17.563302+00:00",
     "entries": {
       "AAPL": {
         "market_cap_usd": "5167353275560.00",
@@ -1608,6 +1632,10 @@
       "KR": {
         "market_cap_usd": "41234903034.00",
         "rank": 366
+      },
+      "CBOE": {
+        "market_cap_usd": "39349018125.00",
+        "rank": 375
       },
       "BIIB": {
         "market_cap_usd": "38646119101.00",
@@ -1712,7 +1740,7 @@
     }
   },
   "history_counts": {
-    "forming": 7
+    "forming": 8
   },
   "market_caps_error": ""
 }
